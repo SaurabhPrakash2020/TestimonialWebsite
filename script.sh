@@ -125,4 +125,5 @@ echo "Replica set initiated successfully."
 
 echo "Checking replica set status"
 mongosh --port 27017 --eval 'rs.status()'
+echo "Done"
 
