@@ -1,20 +1,14 @@
 #!/bin/bash
 
-# Check if the script is run as root
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root or use sudo"
   exit 1
 fi
 
-echo "Step 1: Installing dependencies..."
+echo "Installing dependencies..."
 yum install -y wget curl net-tools
 
-if [ $? -ne 0 ]; then
-  echo "Failed to install dependencies."
-  exit 1
-fi
-
-echo "Step 2: Adding MongoDB YUM repository..."
+echo "Adding MongoDB YUM repository..."
 cat > /etc/yum.repos.d/mongodb-org-5.0.repo <<EOF
 [mongodb-org-5.0]
 name=MongoDB Repository
@@ -24,7 +18,7 @@ enabled=1
 gpgkey=https://pgp.mongodb.com/server-5.0.asc
 EOF
 
-echo "Step 3: Installing MongoDB packages..."
+echo "Installing MongoDB packages..."
 yum install -y mongodb-org
 
 if [ $? -ne 0 ]; then
@@ -32,13 +26,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "Step 4: Configuring MongoDB instances..."
+echo "Configuring MongoDB instances..."
 
-# Create directories for each MongoDB instance
+# directories
 mkdir -p /var/lib/mongo{1,2,3} /var/log/mongodb
 chown -R mongod:mongod /var/lib/mongo{1,2,3} /var/log/mongodb
 
-# Configuration files for each instance
+# Configuration filess
 cat > /etc/mongod1.conf <<EOF
 # Primary node configuration
 storage:
@@ -102,22 +96,14 @@ security:
   javascriptEnabled: false
 EOF
 
-echo "Step 5: Starting MongoDB instances..."
+echo "Starting MongoDB instances"
 mongod --config /etc/mongod1.conf --fork
 mongod --config /etc/mongod2.conf --fork
 mongod --config /etc/mongod3.conf --fork
 
-sleep 5
+sleep 10
 
-# Check if all instances are running
-if pgrep -f "mongod --config /etc/mongod1.conf" && pgrep -f "mongod --config /etc/mongod2.conf" && pgrep -f "mongod --config /etc/mongod3.conf"; then
-  echo "All MongoDB instances started successfully."
-else
-  echo "One or more MongoDB instances failed to start."
-  exit 1
-fi
-
-echo "Step 6: Initiating the MongoDB replica set..."
+echo "Initiating the MongoDB replica set"
 
 mongosh --port 27017 <<EOF
 rs.initiate({
@@ -137,7 +123,6 @@ fi
 
 echo "Replica set initiated successfully."
 
-echo "Step 7: Checking replica set status..."
+echo "Checking replica set status"
 mongosh --port 27017 --eval 'rs.status()'
 
-echo "MongoDB Replica Set Setup Completed Successfully!"
